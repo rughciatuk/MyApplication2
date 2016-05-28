@@ -1,9 +1,12 @@
 package com.example.roi.myapplication;
 
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.GridView;
 
 import org.json.JSONArray;
@@ -20,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
 
     ImageAdapter mListAdapter;
     ArrayList<String> mMoviesPosterPath;
+    JSONArray mMoviesArray;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,11 +50,25 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
-
-
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu){
+
+        getMenuInflater().inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if(id == R.id.test_settings){
+            SharedPreferences movies = getPreferences(0);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     public class GetMovieDataTesk extends AsyncTask<String,Void,String> {
 
@@ -93,10 +111,15 @@ public class MainActivity extends AppCompatActivity {
             try {
                 JSONObject obj = new JSONObject(stringResult);
 
-                JSONArray resultArray = obj.getJSONArray("results");
+                JSONArray moviesArray = obj.getJSONArray("results");
+                SharedPreferences movies = getPreferences(0);
+                SharedPreferences.Editor editor = movies.edit();
+                editor.putString("arrayResult", moviesArray.toString());
+                editor.commit();
 
-                for(int i =0 ; i<resultArray.length();i++){
-                    JSONObject movie = resultArray.getJSONObject(i);
+
+                for(int i =0 ; i<moviesArray.length();i++){
+                    JSONObject movie = moviesArray.getJSONObject(i);
 
                     String path = movie.getString("poster_path");
                     mListAdapter.add(path);
