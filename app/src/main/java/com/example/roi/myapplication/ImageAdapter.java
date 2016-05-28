@@ -31,7 +31,7 @@ public class ImageAdapter extends ArrayAdapter<String>{
     public View getView(int position, View convertView, ViewGroup parent) {
         ImageView imageView1;
 
-        String placeHolderString = "http://image.tmdb.org/t/p/w185/" + mPaths.get(position);
+        String placeHolderString = "http://image.tmdb.org/t/p/w342/" + mPaths.get(position);
 
 
 
