@@ -17,18 +17,21 @@ import java.util.List;
 public class ImageAdapter extends ArrayAdapter<String>{
 
     private Context myContext;
+    private List<String> mPaths;
+
 
     public ImageAdapter(Context context, List<String> strings) {
 
         super(context,0, strings);
         myContext = context;
+        mPaths = strings;
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         ImageView imageView1;
 
-        String placeHolderString = "https://placeholdit.imgix.net/~text?txtsize=18&w=120&h=120&txt=image" + position;
+        String placeHolderString = "http://image.tmdb.org/t/p/w185/" + mPaths.get(position);
 
 
 
