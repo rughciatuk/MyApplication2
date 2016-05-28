@@ -1,7 +1,6 @@
 package com.example.roi.myapplication;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,7 +36,7 @@ public class ImageAdapter extends ArrayAdapter<String>{
             // if it's not recycled, initialize some attributes
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.layout_text_view,parent,false);
         }
-        Log.e("##############", placeHolderString);
+
 
         imageView1 = (ImageView) convertView;
 
