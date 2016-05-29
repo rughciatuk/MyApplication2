@@ -2,7 +2,7 @@
 <ImageView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/layout_text_view"
+    android:id="@+id/grid_image_view"
 
     android:contentDescription="@string/app_name"
 

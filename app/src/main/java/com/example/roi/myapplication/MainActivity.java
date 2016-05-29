@@ -1,12 +1,15 @@
 package com.example.roi.myapplication;
 
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.GridView;
 
 import org.json.JSONArray;
@@ -21,9 +24,11 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-    ImageAdapter mListAdapter;
+    ImageAdapter mImageAdapter;
     ArrayList<String> mMoviesPosterPath;
-    JSONArray mMoviesArray;
+    JSONArray mJSONMoviesArray;
+    int mPage;
+    boolean flag_loading;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,25 +36,64 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mMoviesPosterPath = new ArrayList<>();
+        flag_loading = false;
+        mJSONMoviesArray = new JSONArray();
 
-
-        GetMovieDataTesk myTesk = new GetMovieDataTesk();
-
-
-        String url = "http://api.themoviedb.org/3/movie/top_rated?api_key=5af9081f3908d163822f5c8fda9660ae";
-
-        myTesk.execute(url);
+        mPage = 1;
+        getMoviesData();
 
 
         GridView gridView = (GridView) findViewById(R.id.gridview);
-        mListAdapter =  new ImageAdapter(this,mMoviesPosterPath);
+        mImageAdapter =  new ImageAdapter(this,mMoviesPosterPath);
+        gridView.setAdapter(mImageAdapter);
 
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View view,int position, long id) {
+                String title = "Title not found :(";
+                String plotSynopsis = "Plot not found";
+                String releaseDate = "Release date not found";
+                String userRating = "User Rating not found";
 
+                try {
+                    JSONObject movie = mJSONMoviesArray.getJSONObject(position);
+                    title = movie.getString("original_title");
+                    plotSynopsis = movie.getString("overview");
+                    releaseDate = movie.getString("release_date");
+                    userRating = movie.getString("vote_average");
 
-        gridView.setAdapter(mListAdapter);
+                }catch (Throwable t){
+                    Log.e("My App", "Could not parse malformed JSON: \"" + mJSONMoviesArray.toString() + "\"");
+                }
+                Intent detailActivityIntent = new Intent(getBaseContext(),DetailActivity.class);
+                detailActivityIntent.putExtra("string_title",title);
+                detailActivityIntent.putExtra("string_path",mMoviesPosterPath.get(position));
+                detailActivityIntent.putExtra("string_plot",plotSynopsis);
+                detailActivityIntent.putExtra("string_release", releaseDate);
+                detailActivityIntent.putExtra("string_rating", userRating);
+                startActivity(detailActivityIntent);
 
+            }
+        });
+        gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
 
+            }
 
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if(firstVisibleItem+visibleItemCount == totalItemCount && totalItemCount != 0){
+                    if(flag_loading == false){
+                        flag_loading = true;
+                        mPage++;
+                        getMoviesData();
+                        Log.e("Hey", "there");
+                    }
+
+                }
+
+            }
+        });
     }
 
     @Override
@@ -64,10 +108,22 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         if(id == R.id.test_settings){
-            SharedPreferences movies = getPreferences(0);
+            mImageAdapter.clear();
+            getMoviesData();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    public void getMoviesData(){
+        GetMovieDataTesk myTesk = new GetMovieDataTesk();
+
+
+
+        String url = "http://api.themoviedb.org/3/movie/top_rated?api_key=5af9081f3908d163822f5c8fda9660ae&page=" + mPage;
+
+        myTesk.execute(url);
+        flag_loading = false;
     }
 
     public class GetMovieDataTesk extends AsyncTask<String,Void,String> {
@@ -76,8 +132,7 @@ public class MainActivity extends AppCompatActivity {
         protected String doInBackground(String... arg){
             try{
 
-            String jsonString = getJsonFromServer(arg[0]);
-            return jsonString;
+            return getJsonFromServer(arg[0]);
 
             } catch (IOException e) {
 
@@ -111,21 +166,18 @@ public class MainActivity extends AppCompatActivity {
             try {
                 JSONObject obj = new JSONObject(stringResult);
 
-                JSONArray moviesArray = obj.getJSONArray("results");
-                SharedPreferences movies = getPreferences(0);
-                SharedPreferences.Editor editor = movies.edit();
-                editor.putString("arrayResult", moviesArray.toString());
-                editor.commit();
-
-
-                for(int i =0 ; i<moviesArray.length();i++){
-                    JSONObject movie = moviesArray.getJSONObject(i);
-
-                    String path = movie.getString("poster_path");
-                    mListAdapter.add(path);
+                JSONArray jsonArray = obj.getJSONArray("results");
 
 
 
+                for(int i =0 ; i<jsonArray.length();i++){
+                    JSONObject movie = jsonArray.getJSONObject(i);
+                    mJSONMoviesArray.put(movie);
+
+
+                    ArrayList<String> paths = new ArrayList<>();
+                    paths.add(movie.getString("poster_path"));
+                    mImageAdapter.addAll(paths);
                 }
 
             }catch (Throwable t){

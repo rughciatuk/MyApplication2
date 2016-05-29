@@ -31,15 +31,18 @@ public class ImageAdapter extends ArrayAdapter<String>{
     public View getView(int position, View convertView, ViewGroup parent) {
         ImageView imageView1;
 
+        if(position-1 == mPaths.size()){
+
+        }
+
         String placeHolderString = "http://image.tmdb.org/t/p/w342/" + mPaths.get(position);
 
 
 
         if (convertView == null) {
             // if it's not recycled, initialize some attributes
-            convertView = LayoutInflater.from(getContext()).inflate(R.layout.layout_text_view,parent,false);
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.layout_image_view,parent,false);
         }
-
 
         imageView1 = (ImageView) convertView;
 
