@@ -1,8 +1,11 @@
 package com.example.roi.myapplication;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -11,6 +14,7 @@ import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -27,25 +31,56 @@ public class MainActivity extends AppCompatActivity {
     ImageAdapter mImageAdapter;
     ArrayList<String> mMoviesPosterPath;
     JSONArray mJSONMoviesArray;
+    boolean doneGettingData;
     int mPage;
-    boolean flag_loading;
+    String mOrder;
+
+
+    String TAG;
+
+
+    @Override
+    protected void onStart(){
+        super.onStart();
+        SharedPreferences myPref = PreferenceManager.getDefaultSharedPreferences(this);
+        String order = myPref.getString(getString(R.string.pref_order_key),"top_rated");
+        if(!order.equals(mOrder)) {
+            mImageAdapter.clear();
+            mPage = 1;
+            mOrder = order;
+
+            try{
+                mJSONMoviesArray = new JSONArray();
+            }catch (Throwable t){}
+
+            Toast.makeText(MainActivity.this, "order change to " + order , Toast.LENGTH_SHORT).show();
+            getMoviesData(mOrder);
+        }else{
+            getMoviesData(mOrder);
+        }
+
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        TAG = getLocalClassName();
+        mOrder = "top_rated";
         mMoviesPosterPath = new ArrayList<>();
-        flag_loading = false;
         mJSONMoviesArray = new JSONArray();
-
         mPage = 1;
-        getMoviesData();
+        doneGettingData = false;
 
 
         GridView gridView = (GridView) findViewById(R.id.gridview);
         mImageAdapter =  new ImageAdapter(this,mMoviesPosterPath);
+
+
         gridView.setAdapter(mImageAdapter);
+
 
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,int position, long id) {
@@ -82,12 +117,12 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                if(firstVisibleItem+visibleItemCount == totalItemCount && totalItemCount != 0){
-                    if(flag_loading == false){
-                        flag_loading = true;
-                        mPage++;
-                        getMoviesData();
-                        Log.e("Hey", "there");
+                if(firstVisibleItem+visibleItemCount == totalItemCount && totalItemCount > 0){
+                    if(doneGettingData){
+                        doneGettingData = false;
+
+
+                        getMoviesData(mOrder);
                     }
 
                 }
@@ -109,24 +144,41 @@ public class MainActivity extends AppCompatActivity {
 
         if(id == R.id.test_settings){
             mImageAdapter.clear();
-            getMoviesData();
+            mPage = 1;
+            getMoviesData(mOrder);
             return true;
         }
+
+        if(id == R.id.setting){
+            Intent myIntent = new Intent(this,SettingsActivity.class);
+            startActivity(myIntent);
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
-    public void getMoviesData(){
-        GetMovieDataTesk myTesk = new GetMovieDataTesk();
+    public void getMoviesData(String order){
+        GetMovieDataTask myTask = new GetMovieDataTask();
+
+        Uri.Builder urlBuilder = new Uri.Builder();
+        urlBuilder.scheme("http");
+        urlBuilder.authority("api.themoviedb.org");
+        urlBuilder.appendPath("3");
+        urlBuilder.appendPath("movie");
+        urlBuilder.appendPath(order);
+        urlBuilder.appendQueryParameter("api_key", "5af9081f3908d163822f5c8fda9660ae");
+        urlBuilder.appendQueryParameter("page", ""+mPage);
+        Log.e(TAG, "getMoviesData() called with: " + urlBuilder.build());
+
+        doneGettingData = false;
+        mPage++;
+
+        myTask.execute(urlBuilder.build().toString());
 
 
-
-        String url = "http://api.themoviedb.org/3/movie/top_rated?api_key=5af9081f3908d163822f5c8fda9660ae&page=" + mPage;
-
-        myTesk.execute(url);
-        flag_loading = false;
     }
 
-    public class GetMovieDataTesk extends AsyncTask<String,Void,String> {
+    public class GetMovieDataTask extends AsyncTask<String,Void,String> {
 
         @Override
         protected String doInBackground(String... arg){
@@ -170,7 +222,11 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-                for(int i =0 ; i<jsonArray.length();i++){
+
+                Log.e("##########", "" + mPage);
+                for (int i = 0; i < jsonArray.length(); i++) {
+
+
                     JSONObject movie = jsonArray.getJSONObject(i);
                     mJSONMoviesArray.put(movie);
 
@@ -178,14 +234,19 @@ public class MainActivity extends AppCompatActivity {
                     ArrayList<String> paths = new ArrayList<>();
                     paths.add(movie.getString("poster_path"));
                     mImageAdapter.addAll(paths);
+
                 }
+
+
 
             }catch (Throwable t){
                 Log.e("My App", "Could not parse malformed JSON: \"" + stringResult + "\"");
             }
+            doneGettingData = true;
 
         }
     }
+
 }
 
 
